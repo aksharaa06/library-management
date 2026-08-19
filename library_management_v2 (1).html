@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LibraCore v2 – Library Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0f1420;
+    --card: #141927;
+    --border: #1e2640;
+    --accent: #f0c040;
+    --accent2: #38bdf8;
+    --accent3: #34d399;
+    --accent4: #f472b6;
+    --accent5: #a78bfa;
+    --text: #f0f2f8;
+    --muted: #5a6380;
+    --danger: #f87171;
+    --success: #34d399;
+    --warning: #fbbf24;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+  /* SIDEBAR */
+  #sidebar{position:fixed;left:0;top:0;bottom:0;width:235px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+  .logo{padding:22px 18px 14px;border-bottom:1px solid var(--border);}
+  .logo-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:900;color:var(--accent);letter-spacing:-0.5px;}
+  .logo-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:3px;text-transform:uppercase;}
+  .nav{flex:1;padding:14px 0;overflow-y:auto;}
+  .nav-section{padding:8px 18px 3px;font-size:9px;letter-spacing:2.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;transition:all .2s;border-left:3px solid transparent;font-size:13px;font-weight:500;color:var(--muted);}
+  .nav-item:hover{background:rgba(240,192,64,.07);color:var(--text);}
+  .nav-item.active{border-left-color:var(--accent);background:rgba(240,192,64,.1);color:var(--accent);}
+  .nav-item .icon{width:17px;text-align:center;font-size:15px;}
+  .nav-badge{margin-left:auto;background:var(--accent4);color:#fff;font-size:9px;padding:1px 6px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+  .sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.6;}
+
+  /* MAIN */
+  #main{margin-left:235px;min-height:100vh;}
+  .topbar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;z-index:50;}
+  .page-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--accent);}
+  .topbar-right{display:flex;gap:10px;align-items:center;}
+  .topbar-clock{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .content{padding:24px 28px;}
+
+  /* VIEWS */
+  .view{display:none;}
+  .view.active{display:block;animation:fadeIn .3s;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .stat-card.c1::before{background:var(--accent);}
+  .stat-card.c2::before{background:var(--accent2);}
+  .stat-card.c3::before{background:var(--accent3);}
+  .stat-card.c4::before{background:var(--accent4);}
+  .stat-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;}
+  .stat-card.c1 .stat-num{color:var(--accent);}
+  .stat-card.c2 .stat-num{color:var(--accent2);}
+  .stat-card.c3 .stat-num{color:var(--accent3);}
+  .stat-card.c4 .stat-num{color:var(--accent4);}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.5px;text-transform:uppercase;}
+  .stat-icon{position:absolute;right:14px;top:14px;font-size:26px;opacity:.12;}
+
+  /* CARD/TABLE */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--accent2);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:22px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{background:var(--surface);padding:9px 14px;text-align:left;font-size:9px;letter-spacing:1.5px;color:var(--accent);font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--border);text-transform:uppercase;}
+  td{padding:10px 14px;border-bottom:1px solid rgba(30,38,64,.6);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+
+  /* BADGES */
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:500;}
+  .badge-available{background:rgba(52,211,153,.15);color:var(--success);}
+  .badge-issued{background:rgba(248,113,113,.15);color:var(--danger);}
+  .badge-reserved{background:rgba(56,189,248,.15);color:var(--accent2);}
+  .badge-fiction{background:rgba(240,192,64,.12);color:var(--accent);}
+  .badge-science{background:rgba(52,211,153,.12);color:var(--accent3);}
+  .badge-history{background:rgba(56,189,248,.12);color:var(--accent2);}
+  .badge-tech{background:rgba(244,114,182,.12);color:var(--accent4);}
+  .badge-math{background:rgba(167,139,250,.12);color:var(--accent5);}
+  .badge-member{background:rgba(251,191,36,.12);color:var(--warning);}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:500;font-family:'Outfit',sans-serif;transition:all .2s;}
+  .btn-primary{background:var(--accent);color:#080b12;}
+  .btn-primary:hover{background:#f8d060;transform:translateY(-1px);}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-ghost:hover{color:var(--text);border-color:var(--accent2);}
+  .btn-danger{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+  .btn-danger:hover{background:rgba(248,113,113,.25);}
+  .btn-success{background:rgba(52,211,153,.15);color:var(--success);border:1px solid rgba(52,211,153,.3);}
+  .btn-success:hover{background:rgba(52,211,153,.25);}
+  .btn-info{background:rgba(56,189,248,.15);color:var(--accent2);border:1px solid rgba(56,189,248,.3);}
+  .btn-info:hover{background:rgba(56,189,248,.25);}
+  .btn-sm{padding:4px 9px;font-size:11px;}
+
+  /* FORMS */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .form-group{display:flex;flex-direction:column;gap:5px;}
+  .form-group.full{grid-column:1/-1;}
+  label{font-size:11px;color:var(--accent3);letter-spacing:.5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+  input,select,textarea{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 11px;font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border .2s;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+  select option{background:var(--surface);}
+
+  /* SEARCH */
+  .search-row{display:flex;gap:9px;margin-bottom:18px;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{width:100%;padding-left:34px;}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;animation:modalIn .22s;}
+  @keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+  .modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--accent);}
+  .modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:19px;line-height:1;}
+  .modal-body{padding:22px;}
+  .modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px;}
+
+  /* BOOK DETAIL PANEL */
+  .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px;}
+  .detail-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+  .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .detail-item label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px;}
+  .detail-item span{font-size:13px;color:var(--text);font-weight:500;}
+  .detail-item span.bright{color:var(--accent);}
+  .detail-item span.green{color:var(--success);}
+  .detail-item span.red{color:var(--danger);}
+  .detail-item span.blue{color:var(--accent2);}
+  .detail-item span.pink{color:var(--accent4);}
+  .detail-item span.purple{color:var(--accent5);}
+
+  /* DS VISUALIZER */
+  .ds-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:22px;}
+  .ds-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:12px;text-transform:uppercase;}
+  .ds-array{display:flex;gap:4px;flex-wrap:wrap;}
+  .ds-cell{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;transition:all .3s;color:var(--muted);}
+  .ds-cell.highlight{border-color:var(--accent);background:rgba(240,192,64,.15);color:var(--accent);}
+  .ds-cell.found{border-color:var(--success);background:rgba(52,211,153,.15);color:var(--success);}
+  .linked-list{display:flex;align-items:center;flex-wrap:wrap;gap:0;}
+  .ll-node{display:flex;align-items:center;}
+  .ll-box{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:'JetBrains Mono',monospace;font-size:10px;min-width:78px;text-align:center;transition:all .3s;}
+  .ll-box .ll-id{font-size:8px;color:var(--muted);}
+  .ll-box .ll-val{font-size:11px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78px;color:var(--accent3);}
+  .ll-box.active{border-color:var(--accent3);background:rgba(52,211,153,.08);}
+  .ll-arrow{color:var(--muted);font-size:14px;padding:0 3px;}
+  .ll-null{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--danger);padding:0 5px;}
+  .stack-queue{display:flex;gap:22px;}
+  .stack-col{flex:1;}
+  .stack-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:7px;letter-spacing:1px;text-transform:uppercase;}
+  .stack-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 11px;font-family:'JetBrains Mono',monospace;font-size:10px;margin-bottom:3px;transition:all .3s;color:var(--muted);}
+  .stack-item.top{border-color:var(--accent2);background:rgba(56,189,248,.1);color:var(--accent2);}
+  .stack-item.front{border-color:var(--accent3);background:rgba(52,211,153,.1);color:var(--accent3);}
+  .stack-empty{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:7px;}
+
+  /* FINE BOX */
+  .fine-box{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:10px;padding:14px;}
+  .fine-amount{font-family:'Playfair Display',serif;font-size:30px;color:var(--danger);}
+
+  /* BOOK BORROWERS */
+  .borrower-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--accent5);border-radius:20px;padding:3px 10px;font-size:11px;font-family:'JetBrains Mono',monospace;margin:2px;}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:22px;right:22px;z-index:999;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 18px;display:flex;align-items:center;gap:9px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;}
+  #toast.show{transform:none;opacity:1;}
+
+  /* PRICE TAG */
+  .price-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent3);}
+  .copies-bar{display:flex;align-items:center;gap:6px;}
+  .copies-dots{display:flex;gap:3px;}
+  .copies-dot{width:7px;height:7px;border-radius:50%;}
+  .copies-dot.avail{background:var(--success);}
+  .copies-dot.used{background:var(--danger);}
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar{width:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+  .empty-state{text-align:center;padding:36px;color:var(--muted);font-size:13px;}
+  .empty-state .e-icon{font-size:36px;margin-bottom:8px;opacity:.35;}
+  .divider{height:1px;background:var(--border);margin:14px 0;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+
+  /* DAILY LOG */
+  .day-block{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .day-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;transition:background .2s;}
+  .day-header:hover{background:rgba(240,192,64,.05);}
+  .day-date{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;}
+  .day-meta{display:flex;gap:12px;align-items:center;}
+  .day-count{font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(56,189,248,.15);color:var(--accent2);padding:2px 10px;border-radius:20px;}
+  .day-toggle{font-size:12px;color:var(--muted);transition:transform .2s;}
+  .day-toggle.open{transform:rotate(180deg);}
+  .day-body{border-top:1px solid var(--border);display:none;}
+  .day-body.open{display:block;}
+  .book-row{padding:12px 18px;border-bottom:1px solid rgba(30,38,64,.5);}
+  .book-row:last-child{border-bottom:none;}
+  .book-row-title{font-size:13px;color:var(--text);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .book-row-members{display:flex;flex-wrap:wrap;gap:6px;}
+  .member-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--accent5);border-radius:20px;padding:3px 10px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+  .summary-chip{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:130px;}
+  .summary-chip-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);font-weight:600;}
+  .summary-chip-count{font-size:18px;font-family:'Playfair Display',serif;color:var(--accent2);}
+  .summary-chip-label{font-size:10px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="logo">
+    <div class="logo-title">📚 LibraCore</div>
+    <div class="logo-sub">Library Management v2</div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showView('dashboard',this)"><span class="icon">🏠</span> Dashboard</div>
+    <div class="nav-section">Modules</div>
+    <div class="nav-item" onclick="showView('catalog',this)"><span class="icon">📖</span> Book Catalogue</div>
+    <div class="nav-item" onclick="showView('bookdetail',this)"><span class="icon">🔎</span> Book Details</div>
+    <div class="nav-item" onclick="showView('transactions',this)"><span class="icon">🔄</span> Transactions <span class="nav-badge" id="pending-badge">0</span></div>
+    <div class="nav-item" onclick="showView('members',this)"><span class="icon">👥</span> Members</div>
+    <div class="nav-item" onclick="showView('search',this)"><span class="icon">🔍</span> Search</div>
+    <div class="nav-item" onclick="showView('dailylog',this)"><span class="icon">📅</span> Daily Issue Log</div>
+    <div class="nav-section">Tools</div>
+    <div class="nav-item" onclick="showView('ds',this)"><span class="icon">🧩</span> DS Visualizer</div>
+    <div class="nav-item" onclick="showView('fines',this)"><span class="icon">💸</span> Fines & Dues</div>
+  </div>
+  <div class="sidebar-footer">DS Project · 2025–26<br>Abitha · Aksharaa · Narmadha</div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <div class="topbar-clock" id="clock"></div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="view-dashboard" class="view active">
+      <div class="stats-grid">
+        <div class="stat-card c1"><div class="stat-icon">📚</div><div class="stat-num" id="stat-books">0</div><div class="stat-label">Total Books</div></div>
+        <div class="stat-card c2"><div class="stat-icon">👥</div><div class="stat-num" id="stat-members">0</div><div class="stat-label">Members</div></div>
+        <div class="stat-card c3"><div class="stat-icon">✅</div><div class="stat-num" id="stat-available">0</div><div class="stat-label">Available</div></div>
+        <div class="stat-card c4"><div class="stat-icon">📤</div><div class="stat-num" id="stat-issued">0</div><div class="stat-label">Issued</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div style="padding:14px 18px 0"><div class="section-title">Recent Activity</div></div><table><thead><tr><th>Action</th><th>Book</th><th>Member</th><th>Date</th></tr></thead><tbody id="recent-activity"></tbody></table></div>
+        <div class="card"><div style="padding:14px 18px 0"><div class="section-title" style="color:var(--danger)">⚠ Overdue Books</div></div><table><thead><tr><th>Book</th><th>Member</th><th>Due</th><th>Fine</th></tr></thead><tbody id="overdue-table"></tbody></table></div>
+      </div>
+      <div class="card"><div style="padding:14px 18px 0"><div class="section-title">Category Distribution</div></div><div style="padding:14px 18px" id="category-dist"></div></div>
+    </div>
+
+    <!-- ══ BOOK CATALOGUE ══ -->
+    <div id="view-catalog" class="view">
+      <div class="section-header">
+        <div class="section-title">Book Catalogue & Inventory</div>
+        <button class="btn btn-primary" onclick="openModal('add-book')">＋ Add Book</button>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="cat-search" placeholder="Search by title, author, Book ID, edition..." oninput="renderCatalog()"></div>
+        <select id="cat-filter" onchange="renderCatalog()" style="width:160px"><option value="">All Categories</option><option>Fiction</option><option>Science</option><option>History</option><option>Technology</option><option>Mathematics</option><option>Arts</option></select>
+        <select id="cat-status" onchange="renderCatalog()" style="width:140px"><option value="">All Status</option><option>Available</option><option>Issued</option></select>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Book ID</th><th>Title</th><th>Author</th><th>Edition</th><th>Price</th><th>Category</th><th>Copies</th><th>Available</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="catalog-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ BOOK DETAILS ══ -->
+    <div id="view-bookdetail" class="view">
+      <div class="section-header">
+        <div class="section-title">Book Details — Who Borrowed What</div>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="bd-search" placeholder="Search by Book ID or title..." oninput="renderBookDetail()"></div>
+      </div>
+      <div id="book-detail-list"></div>
+    </div>
+
+    <!-- ══ TRANSACTIONS ══ -->
+    <div id="view-transactions" class="view">
+      <div class="section-header">
+        <div class="section-title">Transaction Module</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success" onclick="openModal('issue-book')">📤 Issue Book</button>
+          <button class="btn btn-ghost" onclick="openModal('return-book')">📥 Return Book</button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>TXN ID</th><th>Book ID</th><th>Title</th><th>Member</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Days</th><th>Fine</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="txn-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ MEMBERS ══ -->
+    <div id="view-members" class="view">
+      <div class="section-header">
+        <div class="section-title">Member Management</div>
+        <button class="btn btn-primary" onclick="openModal('add-member')">＋ Add Member</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Member ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Type</th><th>Books Issued</th><th>Total Fine</th><th>Action</th></tr></thead>
+          <tbody id="members-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ SEARCH ══ -->
+    <div id="view-search" class="view">
+      <div class="section-title" style="margin-bottom:14px">Search & Filter — Linear Search Visualizer</div>
+      <div class="search-row">
+        <div class="search-wrap" style="flex:1"><span class="search-icon">🔍</span><input type="text" id="global-search" placeholder="Search books by title, author, Book ID, category, edition..." oninput="doSearch()"></div>
+      </div>
+      <div class="ds-panel" id="search-ds-panel" style="display:none">
+        <div class="ds-title">// Linear Search — Array Traversal</div>
+        <div class="ds-array" id="search-array"></div>
+        <div style="margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="search-step"></div>
+      </div>
+      <div class="card"><table><thead><tr><th>Book ID</th><th>Title</th><th>Author</th><th>Edition</th><th>Price</th><th>Category</th><th>Copies</th><th>Available</th><th>Status</th></tr></thead><tbody id="search-results"></tbody></table></div>
+    </div>
+
+    <!-- ══ DAILY ISSUE LOG ══ -->
+    <div id="view-dailylog" class="view">
+      <div class="section-header">
+        <div class="section-title">Daily Issue Log — Members per Book per Day</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="log-book-filter" onchange="renderDailyLog()" style="width:220px"><option value="">All Books</option></select>
+          <input type="date" id="log-date-filter" oninput="renderDailyLog()" style="width:160px">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-date-filter').value='';document.getElementById('log-book-filter').value='';renderDailyLog()">Clear</button>
+        </div>
+      </div>
+      <!-- summary strips -->
+      <div id="daily-summary-strip" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px"></div>
+      <!-- per-date accordion -->
+      <div id="daily-log-container"></div>
+    </div>
+
+    <!-- ══ DS VISUALIZER ══ -->
+    <div id="view-ds" class="view">
+      <div class="section-title" style="margin-bottom:18px">Data Structures Visualizer</div>
+      <div class="ds-panel"><div class="ds-title">// Array — Book Records Storage</div><div class="ds-array" id="vis-array"></div><div style="margin-top:8px;font-size:12px;color:var(--muted)">Books stored as indexed array of structs — O(1) access by index</div></div>
+      <div class="ds-panel"><div class="ds-title">// Linked List — Dynamic Book Node Chain</div><div class="linked-list" id="vis-ll"></div><div style="margin-top:8px;font-size:12px;color:var(--muted)">Each node: Book ID + data + next pointer</div></div>
+      <div class="ds-panel"><div class="ds-title">// Stack & Queue — Issue / Return Management</div><div class="stack-queue"><div class="stack-col"><div class="stack-label">Stack (Return History) — LIFO</div><div id="vis-stack"></div></div><div class="stack-col"><div class="stack-label">Queue (Issue Requests) — FIFO</div><div id="vis-queue"></div></div></div></div>
+    </div>
+
+    <!-- ══ FINES ══ -->
+    <div id="view-fines" class="view">
+      <div class="section-title" style="margin-bottom:18px">Fines & Dues Calculator</div>
+      <div class="two-col">
+        <div>
+          <div class="card" style="padding:18px">
+            <div class="section-title" style="margin-bottom:14px;font-size:15px">Calculate Fine</div>
+            <div class="form-group" style="margin-bottom:10px"><label>Select Member</label><select id="fine-member"></select></div>
+            <div class="form-group" style="margin-bottom:10px"><label>Select Issued Book</label><select id="fine-book-select"></select></div>
+            <div class="form-group" style="margin-bottom:14px"><label>Fine Rate (₹ per day)</label><input type="number" id="fine-rate" value="2" min="1"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="calcFine()">Calculate Fine</button>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="padding:18px;margin-bottom:16px">
+            <div class="section-title" style="margin-bottom:14px;font-size:15px">Fine Result</div>
+            <div class="fine-box" id="fine-result"><div style="color:var(--muted);font-size:13px">Select member and book to calculate.</div></div>
+          </div>
+          <div class="card" style="padding:0">
+            <div style="padding:14px 18px 0"><div class="section-title" style="font-size:15px">All Pending Fines</div></div>
+            <table><thead><tr><th>Member</th><th>Book</th><th>Due Date</th><th>Days</th><th>Fine</th></tr></thead><tbody id="all-fines"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add Book -->
+<div class="modal-overlay" id="modal-add-book">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add New Book</div><button class="modal-close" onclick="closeModal('add-book')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Book ID</label><input id="b-id" placeholder="e.g. BK012"></div>
+        <div class="form-group"><label>Title</label><input id="b-title" placeholder="Book title"></div>
+        <div class="form-group"><label>Author</label><input id="b-author" placeholder="Author name"></div>
+        <div class="form-group"><label>Edition</label><input id="b-edition" placeholder="e.g. 3rd Edition"></div>
+        <div class="form-group"><label>Category</label><select id="b-cat"><option>Fiction</option><option>Science</option><option>History</option><option>Technology</option><option>Mathematics</option><option>Arts</option></select></div>
+        <div class="form-group"><label>Year</label><input id="b-year" type="number" placeholder="2024"></div>
+        <div class="form-group"><label>Total Copies</label><input id="b-copies" type="number" value="1" min="1"></div>
+        <div class="form-group"><label>Price (₹)</label><input id="b-price" type="number" placeholder="299" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('add-book')">Cancel</button><button class="btn btn-primary" onclick="addBook()">Add to Catalogue</button></div>
+  </div>
+</div>
+
+<!-- Add Member -->
+<div class="modal-overlay" id="modal-add-member">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Register Member</div><button class="modal-close" onclick="closeModal('add-member')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Member ID</label><input id="m-id" placeholder="e.g. M007"></div>
+        <div class="form-group"><label>Full Name</label><input id="m-name" placeholder="Full name"></div>
+        <div class="form-group full"><label>Email</label><input id="m-email" placeholder="email@example.com"></div>
+        <div class="form-group"><label>Phone</label><input id="m-phone" placeholder="Phone number"></div>
+        <div class="form-group"><label>Membership Type</label><select id="m-type"><option>Student</option><option>Faculty</option><option>External</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('add-member')">Cancel</button><button class="btn btn-primary" onclick="addMember()">Register</button></div>
+  </div>
+</div>
+
+<!-- Issue Book -->
+<div class="modal-overlay" id="modal-issue-book">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📤 Issue Book</div><button class="modal-close" onclick="closeModal('issue-book')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Select Member</label><select id="issue-member"></select></div>
+        <div class="form-group"><label>Select Book</label><select id="issue-book-sel"></select></div>
+        <div class="form-group"><label>Issue Date</label><input type="date" id="issue-date"></div>
+        <div class="form-group"><label>Due Date (14 days)</label><input type="date" id="due-date" readonly></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('issue-book')">Cancel</button><button class="btn btn-success" onclick="issueBook()">Confirm Issue</button></div>
+  </div>
+</div>
+
+<!-- Return Book -->
+<div class="modal-overlay" id="modal-return-book">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📥 Return Book</div><button class="modal-close" onclick="closeModal('return-book')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:12px"><label>Select Active Transaction</label><select id="return-txn"></select></div>
+      <div id="return-fine-info" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('return-book')">Cancel</button><button class="btn btn-primary" onclick="returnBook()">Confirm Return</button></div>
+  </div>
+</div>
+
+<div id="toast"><span id="toast-icon">✅</span><span id="toast-msg"></span></div>
+
+<script>
+// ════════════════════════════════
+// DATA STORE
+// ════════════════════════════════
+let books = [
+  {id:'BK001',title:'The C Programming Language',author:'Kernighan & Ritchie',edition:'2nd Edition',category:'Technology',year:1988,copies:3,available:2,price:450,status:'Issued'},
+  {id:'BK002',title:'Data Structures & Algorithms',author:'Thomas H. Cormen',edition:'3rd Edition',category:'Technology',year:2009,copies:2,available:1,price:899,status:'Issued'},
+  {id:'BK003',title:'1984',author:'George Orwell',edition:'1st Edition',category:'Fiction',year:1949,copies:4,available:4,price:199,status:'Available'},
+  {id:'BK004',title:'A Brief History of Time',author:'Stephen Hawking',edition:'Updated Edition',category:'Science',year:1988,copies:2,available:1,price:350,status:'Issued'},
+  {id:'BK005',title:'Sapiens',author:'Yuval Noah Harari',edition:'1st Edition',category:'History',year:2011,copies:3,available:2,price:499,status:'Issued'},
+  {id:'BK006',title:'Introduction to Algorithms',author:'CLRS',edition:'4th Edition',category:'Technology',year:2022,copies:2,available:1,price:1200,status:'Issued'},
+  {id:'BK007',title:'Calculus',author:'James Stewart',edition:'8th Edition',category:'Mathematics',year:2015,copies:2,available:1,price:750,status:'Issued'},
+  {id:'BK008',title:'The Great Gatsby',author:'F. Scott Fitzgerald',edition:'1st Edition',category:'Fiction',year:1925,copies:3,available:3,price:249,status:'Available'},
+];
+
+let members = [
+  {id:'M001',name:'Abitha R',email:'abitha@example.com',phone:'9876543210',type:'Student',issued:1,fine:0},
+  {id:'M002',name:'Aksharaa S',email:'aksharaa@example.com',phone:'9876543211',type:'Student',issued:0,fine:0},
+  {id:'M003',name:'Narmadha K',email:'narmadha@example.com',phone:'9876543212',type:'Student',issued:1,fine:4},
+  {id:'M004',name:'Dr. Ramesh Kumar',email:'ramesh@example.com',phone:'9876543213',type:'Faculty',issued:0,fine:0},
+];
+
+let transactions = [
+  // historical — multiple members on same day
+  {id:'T001',bookId:'BK001',title:'The C Programming Language',member:'M001',memberName:'Abitha R',issueDate:'2026-03-01',dueDate:'2026-03-15',returnDate:'2026-03-14',status:'Returned',fine:0},
+  {id:'T002',bookId:'BK003',title:'1984',member:'M002',memberName:'Aksharaa S',issueDate:'2026-03-01',dueDate:'2026-03-15',returnDate:'2026-03-13',status:'Returned',fine:0},
+  {id:'T003',bookId:'BK005',title:'Sapiens',member:'M004',memberName:'Dr. Ramesh Kumar',issueDate:'2026-03-01',dueDate:'2026-03-15',returnDate:'2026-03-20',status:'Returned',fine:10},
+  {id:'T004',bookId:'BK002',title:'Data Structures & Algorithms',member:'M001',memberName:'Abitha R',issueDate:'2026-03-05',dueDate:'2026-03-19',returnDate:'2026-03-18',status:'Returned',fine:0},
+  {id:'T005',bookId:'BK006',title:'Introduction to Algorithms',member:'M003',memberName:'Narmadha K',issueDate:'2026-03-05',dueDate:'2026-03-19',returnDate:null,status:'Active',fine:0},
+  {id:'T006',bookId:'BK007',title:'Calculus',member:'M002',memberName:'Aksharaa S',issueDate:'2026-03-10',dueDate:'2026-03-24',returnDate:'2026-03-23',status:'Returned',fine:0},
+  {id:'T007',bookId:'BK008',title:'The Great Gatsby',member:'M004',memberName:'Dr. Ramesh Kumar',issueDate:'2026-03-10',dueDate:'2026-03-24',returnDate:'2026-03-25',status:'Returned',fine:2},
+  {id:'T008',bookId:'BK004',title:'A Brief History of Time',member:'M003',memberName:'Narmadha K',issueDate:'2026-03-15',dueDate:'2026-03-29',returnDate:null,status:'Active',fine:0},
+  {id:'T009',bookId:'BK001',title:'The C Programming Language',member:'M002',memberName:'Aksharaa S',issueDate:'2026-03-20',dueDate:'2026-04-03',returnDate:null,status:'Active',fine:0},
+  {id:'T010',bookId:'BK003',title:'1984',member:'M001',memberName:'Abitha R',issueDate:'2026-03-20',dueDate:'2026-04-03',returnDate:'2026-04-02',status:'Returned',fine:0},
+  {id:'T011',bookId:'BK005',title:'Sapiens',member:'M003',memberName:'Narmadha K',issueDate:'2026-03-25',dueDate:'2026-04-08',returnDate:null,status:'Active',fine:0},
+  {id:'T012',bookId:'BK006',title:'Introduction to Algorithms',member:'M004',memberName:'Dr. Ramesh Kumar',issueDate:'2026-04-01',dueDate:'2026-04-15',returnDate:null,status:'Active',fine:0},
+  {id:'T013',bookId:'BK002',title:'Data Structures & Algorithms',member:'M002',memberName:'Aksharaa S',issueDate:'2026-04-01',dueDate:'2026-04-15',returnDate:null,status:'Active',fine:0},
+  {id:'T014',bookId:'BK007',title:'Calculus',member:'M001',memberName:'Abitha R',issueDate:'2026-04-04',dueDate:'2026-04-18',returnDate:null,status:'Active',fine:0},
+];
+
+let returnStack = [];
+let issueQueue = [];
+let activityLog = [
+  {action:'Issued',book:'The C Programming Language',member:'Abitha R',date:'2026-03-01'},
+  {action:'Issued',book:'1984',member:'Aksharaa S',date:'2026-03-01'},
+  {action:'Issued',book:'Sapiens',member:'Dr. Ramesh Kumar',date:'2026-03-01'},
+  {action:'Issued',book:'Data Structures & Algorithms',member:'Abitha R',date:'2026-03-05'},
+  {action:'Issued',book:'Introduction to Algorithms',member:'Narmadha K',date:'2026-03-05'},
+  {action:'Issued',book:'Calculus',member:'Aksharaa S',date:'2026-03-10'},
+  {action:'Issued',book:'The Great Gatsby',member:'Dr. Ramesh Kumar',date:'2026-03-10'},
+  {action:'Returned',book:'1984',member:'Aksharaa S',date:'2026-03-13'},
+  {action:'Returned',book:'The C Programming Language',member:'Abitha R',date:'2026-03-14'},
+  {action:'Issued',book:'A Brief History of Time',member:'Narmadha K',date:'2026-03-15'},
+  {action:'Returned',book:'Data Structures & Algorithms',member:'Abitha R',date:'2026-03-18'},
+  {action:'Issued',book:'The C Programming Language',member:'Aksharaa S',date:'2026-03-20'},
+  {action:'Issued',book:'1984',member:'Abitha R',date:'2026-03-20'},
+  {action:'Returned',book:'Sapiens',member:'Dr. Ramesh Kumar',date:'2026-03-20'},
+  {action:'Returned',book:'Calculus',member:'Aksharaa S',date:'2026-03-23'},
+  {action:'Returned',book:'The Great Gatsby',member:'Dr. Ramesh Kumar',date:'2026-03-25'},
+  {action:'Issued',book:'Sapiens',member:'Narmadha K',date:'2026-03-25'},
+  {action:'Issued',book:'Introduction to Algorithms',member:'Dr. Ramesh Kumar',date:'2026-04-01'},
+  {action:'Issued',book:'Data Structures & Algorithms',member:'Aksharaa S',date:'2026-04-01'},
+  {action:'Returned',book:'1984',member:'Abitha R',date:'2026-04-02'},
+  {action:'Issued',book:'Calculus',member:'Abitha R',date:'2026-04-04'},
+];
+let txnCounter = 15;
+
+function fmtDate(d){return d.toISOString().split('T')[0];}
+function today(){return new Date();}
+
+// ════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════
+const pageTitles={dashboard:'Dashboard',catalog:'Book Catalogue',bookdetail:'Book Details',transactions:'Transactions',members:'Members',search:'Search & Filter',dailylog:'Daily Issue Log',ds:'DS Visualizer',fines:'Fines & Dues'};
+function showView(name,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('page-title').textContent=pageTitles[name]||name;
+  renderAll();
+}
+
+// ════════════════════════════════
+// CLOCK
+// ════════════════════════════════
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour12:false});}
+setInterval(updateClock,1000);updateClock();
+
+// ════════════════════════════════
+// RENDER
+// ════════════════════════════════
+function renderAll(){renderStats();renderCatalog();renderTransactions();renderMembers();renderDSVis();renderFines();renderRecent();renderOverdue();renderCategoryDist();renderBookDetail();renderDailyLog();updatePendingBadge();}
+
+function renderStats(){
+  document.getElementById('stat-books').textContent=books.length;
+  document.getElementById('stat-members').textContent=members.length;
+  document.getElementById('stat-available').textContent=books.filter(b=>b.available>0).length;
+  document.getElementById('stat-issued').textContent=transactions.filter(t=>t.status==='Active').length;
+}
+
+function catBadge(cat){const m={Fiction:'fiction',Science:'science',History:'history',Technology:'tech',Mathematics:'math',Arts:'fiction'};return `<span class="badge badge-${m[cat]||'fiction'}">${cat}</span>`;}
+function statusBadge(s){return s==='Available'?`<span class="badge badge-available">Available</span>`:`<span class="badge badge-issued">Issued</span>`;}
+
+function copiesDots(copies,available){
+  const used=copies-available;
+  let h='<div class="copies-bar"><div class="copies-dots">';
+  for(let i=0;i<copies;i++) h+=`<div class="copies-dot ${i<available?'avail':'used'}"></div>`;
+  h+=`</div><span style="font-size:11px;color:${available>0?'var(--success)':'var(--danger)'};">${available}/${copies}</span></div>`;
+  return h;
+}
+
+function renderCatalog(){
+  const q=(document.getElementById('cat-search')||{value:''}).value.toLowerCase();
+  const fc=(document.getElementById('cat-filter')||{value:''}).value;
+  const fs=(document.getElementById('cat-status')||{value:''}).value;
+  let filtered=books.filter(b=>{
+    const match=!q||b.id.toLowerCase().includes(q)||b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||b.edition.toLowerCase().includes(q);
+    const cat=!fc||b.category===fc;
+    const sta=!fs||(fs==='Available'?b.available>0:b.available===0);
+    return match&&cat&&sta;
+  });
+  const tb=document.getElementById('catalog-table');
+  if(!tb)return;
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan=10><div class="empty-state"><div class="e-icon">📭</div>No books found.</div></td></tr>`;return;}
+  tb.innerHTML=filtered.map(b=>`<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${b.id}</span></td>
+    <td><strong style="color:var(--text)">${b.title}</strong></td>
+    <td style="color:var(--muted)">${b.author}</td>
+    <td style="color:var(--accent5);font-size:11px">${b.edition}</td>
+    <td class="price-tag">₹${b.price}</td>
+    <td>${catBadge(b.category)}</td>
+    <td style="text-align:center;color:var(--accent2)">${b.copies}</td>
+    <td>${copiesDots(b.copies,b.available)}</td>
+    <td>${statusBadge(b.available>0?'Available':'Issued')}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="deleteBook('${b.id}')">🗑</button></td>
+  </tr>`).join('');
+}
+
+function renderBookDetail(){
+  const q=(document.getElementById('bd-search')||{value:''}).value.toLowerCase();
+  const container=document.getElementById('book-detail-list');
+  if(!container)return;
+  let filtered=books.filter(b=>!q||b.id.toLowerCase().includes(q)||b.title.toLowerCase().includes(q));
+  if(!filtered.length){container.innerHTML=`<div class="empty-state"><div class="e-icon">📭</div>No books found.</div>`;return;}
+  container.innerHTML=filtered.map(b=>{
+    const activeTxns=transactions.filter(t=>t.bookId===b.id&&t.status==='Active');
+    const allTxns=transactions.filter(t=>t.bookId===b.id);
+    const borrowers=activeTxns.length?activeTxns.map(t=>`<span class="borrower-tag">👤 ${t.memberName} (due: ${t.dueDate})</span>`).join(''):'<span style="color:var(--success);font-size:12px">No active borrowers</span>';
+    return `<div class="detail-panel">
+      <div class="detail-title">${b.id} — ${b.title}</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Author</label><span class="bright">${b.author}</span></div>
+        <div class="detail-item"><label>Edition</label><span class="purple">${b.edition}</span></div>
+        <div class="detail-item"><label>Year</label><span>${b.year}</span></div>
+        <div class="detail-item"><label>Category</label><span class="blue">${b.category}</span></div>
+        <div class="detail-item"><label>Price</label><span class="green">₹${b.price}</span></div>
+        <div class="detail-item"><label>Total Copies</label><span class="bright">${b.copies}</span></div>
+        <div class="detail-item"><label>Available Copies</label><span class="${b.available>0?'green':'red'}">${b.available}</span></div>
+        <div class="detail-item"><label>Copies Issued</label><span class="red">${b.copies-b.available}</span></div>
+        <div class="detail-item"><label>Times Borrowed</label><span class="blue">${allTxns.length}</span></div>
+      </div>
+      <div style="margin-top:12px"><label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Currently Borrowed By</label>${borrowers}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTransactions(){
+  const tb=document.getElementById('txn-table');
+  if(!tb)return;
+  const now=today();
+  if(!transactions.length){tb.innerHTML=`<tr><td colspan=11><div class="empty-state"><div class="e-icon">📋</div>No transactions.</div></td></tr>`;return;}
+  tb.innerHTML=transactions.map(t=>{
+    const due=new Date(t.dueDate);
+    const overdue=t.status==='Active'&&now>due;
+    const days=overdue?Math.ceil((now-due)/86400000):0;
+    const fine=t.returnDate?(t.fine):(overdue?days*2:0);
+    return `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">${t.id}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)">${t.bookId}</td>
+      <td style="color:var(--text)">${t.title}</td>
+      <td style="color:var(--accent4)">${t.memberName}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent3)">${t.issueDate}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${overdue?'var(--danger)':'var(--muted)'}">${t.dueDate}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--success)">${t.returnDate||'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${overdue?'var(--danger)':'var(--muted)'}">${days>0?days+'d':'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${fine>0?'var(--danger)':'var(--muted)'}">₹${fine}</td>
+      <td>${t.status==='Returned'?`<span class="badge badge-available">Returned</span>`:`<span class="badge badge-${overdue?'issued':'reserved'}">${overdue?'Overdue':'Active'}</span>`}</td>
+      <td>${t.status==='Active'?`<button class="btn btn-sm btn-success" onclick="quickReturn('${t.id}')">Return</button>`:`<span style="color:var(--muted);font-size:11px">—</span>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMembers(){
+  const tb=document.getElementById('members-table');
+  if(!tb)return;
+  tb.innerHTML=members.map(m=>`<tr>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${m.id}</td>
+    <td><strong style="color:var(--text)">${m.name}</strong></td>
+    <td style="color:var(--muted);font-size:12px">${m.email}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent5)">${m.phone}</td>
+    <td><span class="badge badge-member">${m.type}</span></td>
+    <td style="text-align:center;color:var(--accent2)">${m.issued}</td>
+    <td style="color:${m.fine>0?'var(--danger)':'var(--success)'};font-family:'JetBrains Mono',monospace">₹${m.fine}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}')">Remove</button></td>
+  </tr>`).join('');
+}
+
+function renderRecent(){
+  const tb=document.getElementById('recent-activity');
+  if(!tb)return;
+  const recent=[...activityLog].reverse().slice(0,5);
+  if(!recent.length){tb.innerHTML=`<tr><td colspan=4 style="color:var(--muted);text-align:center;padding:18px">No activity yet</td></tr>`;return;}
+  tb.innerHTML=recent.map(a=>`<tr>
+    <td><span class="badge badge-${a.action==='Issued'?'issued':'available'}">${a.action}</span></td>
+    <td style="font-size:12px;color:var(--text)">${a.book}</td>
+    <td style="color:var(--accent4);font-size:12px">${a.member}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${a.date}</td>
+  </tr>`).join('');
+}
+
+function renderOverdue(){
+  const tb=document.getElementById('overdue-table');
+  if(!tb)return;
+  const now=today();
+  const overdue=transactions.filter(t=>t.status==='Active'&&new Date(t.dueDate)<now);
+  if(!overdue.length){tb.innerHTML=`<tr><td colspan=4 style="color:var(--success);text-align:center;padding:18px">✅ No overdue books!</td></tr>`;return;}
+  tb.innerHTML=overdue.map(t=>{
+    const days=Math.ceil((now-new Date(t.dueDate))/86400000);
+    return `<tr>
+      <td style="font-size:12px;color:var(--accent4)">${t.title}</td>
+      <td style="color:var(--muted);font-size:12px">${t.memberName}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--danger)">${t.dueDate}</td>
+      <td style="color:var(--danger);font-family:'JetBrains Mono',monospace">₹${days*2}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCategoryDist(){
+  const el=document.getElementById('category-dist');
+  if(!el)return;
+  const cats={};books.forEach(b=>{cats[b.category]=(cats[b.category]||0)+1;});
+  const total=books.length||1;
+  const colors={Fiction:'var(--accent)',Science:'var(--accent3)',History:'var(--accent2)',Technology:'var(--accent4)',Mathematics:'var(--accent5)',Arts:'var(--warning)'};
+  el.innerHTML=Object.entries(cats).map(([cat,cnt])=>`
+    <div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;color:${colors[cat]||'var(--accent)'}">${cat}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">${cnt} book${cnt>1?'s':''}</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${(cnt/total*100).toFixed(0)}%;background:${colors[cat]||'var(--accent)'};border-radius:3px;transition:width .6s"></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderDSVis(){
+  const av=document.getElementById('vis-array');
+  if(av)av.innerHTML=books.map((b,i)=>`<div class="ds-cell">[${i}]<br>${b.id}</div>`).join('');
+  const ll=document.getElementById('vis-ll');
+  if(ll){ll.innerHTML=books.slice(0,6).map(b=>`<div class="ll-node"><div class="ll-box ${b.available>0?'active':''}"><div class="ll-id">${b.id}</div><div class="ll-val">${b.title.split(' ').slice(0,2).join(' ')}</div></div><span class="ll-arrow">→</span></div>`).join('')+'<span class="ll-null">NULL</span>';}
+  const sv=document.getElementById('vis-stack');
+  if(sv){sv.innerHTML=returnStack.length?[...returnStack].reverse().map((item,i)=>`<div class="stack-item ${i===0?'top':''}">${i===0?'TOP → ':''}"${item}"</div>`).join(''):`<div class="stack-empty">[ empty ]</div>`;}
+  const qv=document.getElementById('vis-queue');
+  if(qv){qv.innerHTML=issueQueue.length?issueQueue.map((item,i)=>`<div class="stack-item ${i===0?'front':''}">${i===0?'FRONT → ':''}"${item}"</div>`).join(''):`<div class="stack-empty">[ empty ]</div>`;}
+}
+
+function renderFines(){
+  ['fine-member','issue-member'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=members.map(m=>`<option value="${m.id}">${m.name} (${m.id})</option>`).join('');});
+  const ib=document.getElementById('issue-book-sel');
+  if(ib)ib.innerHTML=books.filter(b=>b.available>0).map(b=>`<option value="${b.id}">${b.title} — ${b.edition} (${b.id})</option>`).join('');
+  const fb=document.getElementById('fine-book-select');
+  if(fb){const at=transactions.filter(t=>t.status==='Active');fb.innerHTML=at.length?at.map(t=>`<option value="${t.id}">${t.title} → ${t.memberName}</option>`).join(''):'<option>No active transactions</option>';}
+  const rt=document.getElementById('return-txn');
+  if(rt){const active=transactions.filter(t=>t.status==='Active');rt.innerHTML=active.length?active.map(t=>`<option value="${t.id}">${t.id}: ${t.title} → ${t.memberName}</option>`).join(''):'<option>No active transactions</option>';rt.onchange=showReturnFine;showReturnFine();}
+  const af=document.getElementById('all-fines');
+  if(af){const now=today();const rows=transactions.filter(t=>t.status==='Active'&&new Date(t.dueDate)<now);if(!rows.length){af.innerHTML=`<tr><td colspan=5 style="color:var(--success);text-align:center;padding:14px">No pending fines ✅</td></tr>`;return;}af.innerHTML=rows.map(t=>{const days=Math.ceil((now-new Date(t.dueDate))/86400000);return `<tr><td style="color:var(--accent4)">${t.memberName}</td><td style="font-size:12px">${t.title}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${t.dueDate}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--danger)">${days}d</td><td style="font-family:'JetBrains Mono',monospace;color:var(--danger)">₹${days*2}</td></tr>`;}).join('');}
+}
+
+function updatePendingBadge(){const b=document.getElementById('pending-badge');if(b)b.textContent=transactions.filter(t=>t.status==='Active').length;}
+
+// ════════════════════════════════
+// SEARCH
+// ════════════════════════════════
+let searchTimeout;
+function doSearch(){
+  const q=document.getElementById('global-search').value.toLowerCase().trim();
+  const panel=document.getElementById('search-ds-panel');
+  const arr=document.getElementById('search-array');
+  const step=document.getElementById('search-step');
+  const tb=document.getElementById('search-results');
+  if(!q){panel.style.display='none';tb.innerHTML='';return;}
+  panel.style.display='block';
+  let results=[];
+  arr.innerHTML=books.map((b,i)=>`<div class="ds-cell" id="sc-${i}">${b.id}</div>`).join('');
+  step.textContent='Starting linear search...';
+  clearTimeout(searchTimeout);
+  let i=0;
+  function step_search(){
+    if(i>0)document.getElementById(`sc-${i-1}`)?.classList.remove('highlight');
+    if(i>=books.length){step.textContent=`Search complete. Found ${results.length} result(s).`;renderSearchResults(results);return;}
+    const cell=document.getElementById(`sc-${i}`);
+    if(cell)cell.classList.add('highlight');
+    const b=books[i];
+    if(b.id.toLowerCase().includes(q)||b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.edition.toLowerCase().includes(q)){
+      results.push(b);
+      if(cell){cell.classList.remove('highlight');cell.classList.add('found');}
+      step.textContent=`[${i}] Checking ${b.id} → MATCH! "${b.title}"`;
+    }else{step.textContent=`[${i}] Checking ${b.id} → no match`;}
+    i++;searchTimeout=setTimeout(step_search,200);
+  }
+  step_search();
+}
+
+function renderSearchResults(res){
+  const tb=document.getElementById('search-results');
+  if(!res.length){tb.innerHTML=`<tr><td colspan=9><div class="empty-state"><div class="e-icon">🔍</div>No books found.</div></td></tr>`;return;}
+  tb.innerHTML=res.map(b=>`<tr>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${b.id}</td>
+    <td><strong style="color:var(--text)">${b.title}</strong></td>
+    <td style="color:var(--muted)">${b.author}</td>
+    <td style="color:var(--accent5);font-size:11px">${b.edition}</td>
+    <td class="price-tag">₹${b.price}</td>
+    <td>${catBadge(b.category)}</td>
+    <td style="text-align:center;color:var(--accent2)">${b.copies}</td>
+    <td>${copiesDots(b.copies,b.available)}</td>
+    <td>${statusBadge(b.available>0?'Available':'Issued')}</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════
+// DAILY ISSUE LOG
+// ════════════════════════════════
+function renderDailyLog(){
+  const container=document.getElementById('daily-log-container');
+  const strip=document.getElementById('daily-summary-strip');
+  const bookFilter=(document.getElementById('log-book-filter')||{value:''}).value;
+  const dateFilter=(document.getElementById('log-date-filter')||{value:''}).value;
+  if(!container||!strip)return;
+
+  // populate book filter dropdown
+  const bf=document.getElementById('log-book-filter');
+  if(bf){
+    const cur=bf.value;
+    bf.innerHTML='<option value="">All Books</option>'+books.map(b=>`<option value="${b.id}" ${cur===b.id?'selected':''}>${b.title} (${b.id})</option>`).join('');
+  }
+
+  // group all issue-type transactions by date → book → members
+  let txns=transactions.filter(t=>true); // all
+  if(bookFilter) txns=txns.filter(t=>t.bookId===bookFilter);
+  if(dateFilter) txns=txns.filter(t=>t.issueDate===dateFilter);
+
+  // build map: date → { bookId → {title, members:[]} }
+  const map={};
+  txns.forEach(t=>{
+    if(!map[t.issueDate])map[t.issueDate]={};
+    if(!map[t.issueDate][t.bookId])map[t.issueDate][t.bookId]={title:t.title,bookId:t.bookId,members:[]};
+    map[t.issueDate][t.bookId].members.push({name:t.memberName,id:t.member,txnId:t.id,status:t.status,returnDate:t.returnDate});
+  });
+
+  const dates=Object.keys(map).sort((a,b)=>b.localeCompare(a)); // newest first
+
+  if(!dates.length){
+    container.innerHTML=`<div class="empty-state"><div class="e-icon">📅</div>No issue records found for the selected filter.</div>`;
+    strip.innerHTML='';
+    return;
+  }
+
+  // summary strip — total issues per day
+  const allDates=Object.keys(map).sort((a,b)=>a.localeCompare(b));
+  strip.innerHTML=allDates.map(d=>{
+    const total=Object.values(map[d]).reduce((s,b)=>s+b.members.length,0);
+    const books=Object.keys(map[d]).length;
+    return `<div class="summary-chip">
+      <div class="summary-chip-date">${d}</div>
+      <div class="summary-chip-count">${total}</div>
+      <div class="summary-chip-label">${total===1?'issue':'issues'} · ${books} book${books>1?'s':''}</div>
+    </div>`;
+  }).join('');
+
+  // day blocks
+  container.innerHTML=dates.map((date,di)=>{
+    const dayBooks=map[date];
+    const totalMembers=Object.values(dayBooks).reduce((s,b)=>s+b.members.length,0);
+    const totalBooks=Object.keys(dayBooks).length;
+    const dateLabel=new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+    const booksHtml=Object.values(dayBooks).map(bk=>{
+      const chips=bk.members.map(m=>{
+        const statusColor=m.status==='Active'?'var(--accent3)':'var(--muted)';
+        const ret=m.returnDate?` · returned ${m.returnDate}`:'';
+        return `<span class="member-chip" style="border-color:rgba(167,139,250,${m.status==='Active'?'.4':'.15'})">
+          👤 ${m.name}
+          <span style="font-size:9px;color:${statusColor};margin-left:3px">${m.status==='Active'?'Active':'Returned'}${ret}</span>
+        </span>`;
+      }).join('');
+      return `<div class="book-row">
+        <div class="book-row-title">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);background:rgba(240,192,64,.1);padding:2px 7px;border-radius:4px">${bk.bookId}</span>
+          ${bk.title}
+          <span style="font-size:10px;color:var(--accent2);font-family:'JetBrains Mono',monospace;margin-left:auto">${bk.members.length} member${bk.members.length>1?'s':''}</span>
+        </div>
+        <div class="book-row-members">${chips}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="day-block">
+      <div class="day-header" onclick="toggleDay('day-${di}')">
+        <div>
+          <div class="day-date">📅 ${date}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${dateLabel}</div>
+        </div>
+        <div class="day-meta">
+          <span class="day-count">${totalMembers} issue${totalMembers>1?'s':''}</span>
+          <span style="font-size:11px;color:var(--muted)">${totalBooks} book${totalBooks>1?'s':''}</span>
+          <span class="day-toggle ${di===0?'open':''}" id="toggle-day-${di}">▼</span>
+        </div>
+      </div>
+      <div class="day-body ${di===0?'open':''}" id="day-${di}">${booksHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDay(id){
+  const body=document.getElementById(id);
+  const idx=id.split('-')[1];
+  const tog=document.getElementById('toggle-day-'+idx);
+  if(!body)return;
+  body.classList.toggle('open');
+  if(tog)tog.classList.toggle('open');
+}
+
+// ════════════════════════════════
+// CRUD
+// ════════════════════════════════
+function addBook(){
+  const id=v('b-id'),title=v('b-title'),author=v('b-author'),edition=v('b-edition')||'1st Edition',cat=v('b-cat'),year=parseInt(v('b-year'))||2024,copies=parseInt(v('b-copies'))||1,price=parseInt(v('b-price'))||0;
+  if(!id||!title||!author){toast('error','Please fill all required fields.');return;}
+  if(books.find(b=>b.id===id)){toast('error','Book ID already exists!');return;}
+  books.push({id,title,author,edition,category:cat,year,copies,available:copies,price,status:'Available'});
+  issueQueue.push(title.split(' ').slice(0,2).join(' '));
+  closeModal('add-book');renderAll();
+  toast('success',`"${title}" added to catalogue.`);
+}
+
+function deleteBook(id){
+  if(!confirm('Remove this book?'))return;
+  books=books.filter(b=>b.id!==id);renderAll();toast('success','Book removed.');
+}
+
+function addMember(){
+  const id=v('m-id'),name=v('m-name'),email=v('m-email'),phone=v('m-phone'),type=v('m-type');
+  if(!id||!name||!email){toast('error','Please fill required fields.');return;}
+  if(members.find(m=>m.id===id)){toast('error','Member ID already exists!');return;}
+  members.push({id,name,email,phone,type,issued:0,fine:0});
+  closeModal('add-member');renderAll();toast('success',`Member "${name}" registered.`);
+}
+
+function deleteMember(id){
+  if(!confirm('Remove this member?'))return;
+  members=members.filter(m=>m.id!==id);renderAll();toast('success','Member removed.');
+}
+
+function issueBook(){
+  const mid=v('issue-member'),bid=v('issue-book-sel'),idate=v('issue-date');
+  if(!mid||!bid||!idate){toast('error','Please fill all fields.');return;}
+  const book=books.find(b=>b.id===bid);
+  const member=members.find(m=>m.id===mid);
+  if(!book||!member){toast('error','Invalid selection.');return;}
+  const due=new Date(idate);due.setDate(due.getDate()+14);
+  const dueStr=fmtDate(due);
+  const txnId='T'+String(txnCounter++).padStart(3,'0');
+  transactions.push({id:txnId,bookId:bid,title:book.title,member:mid,memberName:member.name,issueDate:idate,dueDate:dueStr,returnDate:null,status:'Active',fine:0});
+  book.available=Math.max(0,book.available-1);
+  book.status=book.available===0?'Issued':'Available';
+  member.issued++;
+  activityLog.push({action:'Issued',book:book.title,member:member.name,date:idate});
+  issueQueue.push(book.title.split(' ').slice(0,2).join(' '));
+  closeModal('issue-book');renderAll();
+  toast('success',`"${book.title}" issued to ${member.name}.`);
+}
+
+function returnBook(){const tid=v('return-txn');doReturn(tid);closeModal('return-book');}
+function quickReturn(tid){doReturn(tid);renderAll();}
+
+function doReturn(tid){
+  const txn=transactions.find(t=>t.id===tid);
+  if(!txn||txn.status==='Returned'){toast('error','Invalid transaction.');return;}
+  const retDate=fmtDate(today());
+  txn.status='Returned';txn.returnDate=retDate;
+  const book=books.find(b=>b.id===txn.bookId);
+  if(book){book.available++;if(book.available>0)book.status='Available';}
+  const member=members.find(m=>m.id===txn.member);
+  if(member){
+    member.issued=Math.max(0,member.issued-1);
+    const now=today();const due=new Date(txn.dueDate);
+    if(now>due){const days=Math.ceil((now-due)/86400000);const fine=days*2;txn.fine=fine;member.fine+=fine;}
+  }
+  activityLog.push({action:'Returned',book:txn.title,member:txn.memberName,date:retDate});
+  returnStack.push(txn.title.split(' ').slice(0,2).join(' '));
+  renderAll();toast('success',`"${txn.title}" returned successfully.`);
+}
+
+function showReturnFine(){
+  const tid=document.getElementById('return-txn')?.value;
+  const box=document.getElementById('return-fine-info');
+  if(!box)return;
+  const txn=transactions.find(t=>t.id===tid);
+  if(!txn){box.innerHTML='';return;}
+  const now=today();const due=new Date(txn.dueDate);
+  if(now>due){const days=Math.ceil((now-due)/86400000);box.innerHTML=`<div class="fine-box"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Fine due — ${days} day(s) overdue</div><div class="fine-amount">₹${days*2}</div></div>`;}
+  else{box.innerHTML=`<div style="color:var(--success);font-size:13px">✅ No fine — within due date.</div>`;}
+}
+
+function calcFine(){
+  const tid=v('fine-book-select');const rate=parseFloat(v('fine-rate'))||2;
+  const txn=transactions.find(t=>t.id===tid);
+  const box=document.getElementById('fine-result');
+  if(!txn){box.innerHTML='<div style="color:var(--muted)">No active transaction selected.</div>';return;}
+  const now=today();const due=new Date(txn.dueDate);
+  if(now<=due){const daysLeft=Math.ceil((due-now)/86400000);box.innerHTML=`<div style="color:var(--success);font-size:14px">✅ No fine! <strong>${daysLeft} day(s)</strong> remaining.</div>`;}
+  else{const days=Math.ceil((now-due)/86400000);const fine=days*rate;box.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Book: ${txn.title}</div><div style="font-size:12px;color:var(--muted);margin-bottom:4px">Member: ${txn.memberName}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Overdue: <strong style="color:var(--danger)">${days} day(s)</strong></div><div class="fine-amount">₹${fine.toFixed(2)}</div><div style="font-size:11px;color:var(--muted);margin-top:5px">₹${rate}/day × ${days} days</div>`;}
+}
+
+// auto-set issue date
+(function(){
+  const idate=document.getElementById('issue-date');
+  if(idate){
+    const t=fmtDate(today());idate.value=t;
+    const d=new Date();d.setDate(d.getDate()+14);document.getElementById('due-date').value=fmtDate(d);
+    idate.onchange=()=>{const dd=new Date(idate.value);dd.setDate(dd.getDate()+14);document.getElementById('due-date').value=fmtDate(dd);};
+  }
+})();
+
+// ════════════════════════════════
+// MODAL
+// ════════════════════════════════
+function openModal(name){renderFines();document.getElementById('modal-'+name).classList.add('open');}
+function closeModal(name){document.getElementById('modal-'+name).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+function v(id){return document.getElementById(id)?.value||'';}
+
+// ════════════════════════════════
+// TOAST
+// ════════════════════════════════
+function toast(type,msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-icon').textContent=type==='error'?'❌':'✅';
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+renderAll();
+</script>
+</body>
+</html>
